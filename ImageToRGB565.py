@@ -82,15 +82,37 @@ def extract_frame_rgb565(img_frame):
 
     return rgb565_data
 
-def process_image(input_path, output_path=None):
+def resize_frame(img, new_width=None, new_height=None):
+    """
+    Method to resize the image frame to the desired width and height.
+
+    Parameters
+    ----------
+    new_width : int, optional
+        The new width of the frame in pixel.
+    new_height : int, optional
+        The new height of the frame in pixel.
+
+    Returns
+    -------
+    'PIL.Image.Image' object
+        A resized PIL image object.
+    """
+    new_img = img
+    # Check if the image needs to be resized
+    if new_width != None and new_height != None:
+        # Resize the image to the desired width and height
+        new_img = img.resize((int(new_width), int(new_height)), Image.BICUBIC)
+
+    return new_img
+
+def process_image(input_path, output_path=None, new_width=None, new_height=None):
     # Check if the file is a supported image file
     if input_path.lower().endswith(SUPPORTED_FILE_FORMATS):
         # Extract the input filename without extension
         filename = os.path.splitext(os.path.basename(input_path))[0]
         # Open the image file
         img = Image.open(input_path)
-        # Get the dimensions of the image
-        width, height = img.size
 
         # Check if output path is not provided
         if output_path == None:
@@ -104,6 +126,10 @@ def process_image(input_path, output_path=None):
             frame_count = 0
             # Iterate through each frame and store its RGB565 data
             for frame in ImageSequence.Iterator(img):
+                # Resize the frame to the new dimension
+                frame = resize_frame(frame, new_width, new_height)
+                # Get the dimensions of the image
+                width, height = frame.size
                 # Extract the RGB565 data of the extracted frame from the gif
                 rgb565_data = extract_frame_rgb565(frame)
                 # Add the RGB565 data of the frame into gif list
@@ -165,6 +191,10 @@ def process_image(input_path, output_path=None):
                 file.write("};\n\n")
                 file.write(f"#endif // {filename.upper()}_H\n\n")
         else:
+            # Resize the image to the new dimension
+            img = resize_frame(img, new_width, new_height)
+            # Get the dimensions of the image
+            width, height = img.size
             # Extract the RGB565 data of the static image, i.e single frame
             rgb565_data = extract_frame_rgb565(img)
 
@@ -223,23 +253,23 @@ def main():
     parser = argparse.ArgumentParser(description="Convert PNG image(s) to RGB565 format and create C header file(s).")
     parser.add_argument("input", help="Input PNG image file or folder path")
     parser.add_argument("-o", "--output", help="Output C header file (optional)")
+    parser.add_argument("-w", "--width", help="Resize width of the image (optional)")
+    parser.add_argument("-t", "--height", help="Resize height of the image (optional)")
 
     args = parser.parse_args()
     input_path = args.input
     output_path = args.output
+    new_width = args.width
+    new_height = args.height
 
     if os.path.isfile(input_path):
-        process_image(input_path, output_path)
+        process_image(input_path, output_path, new_width, new_height)
     elif os.path.isdir(input_path):
         # Process all PNG files in the folder
         for filename in os.listdir(input_path):
-                file_path = os.path.join(input_path, filename)
-                if output_path:
-                    # If an output path is specified, use it for all files
-                    process_image(file_path, output_path)
-                else:
-                    # Otherwise, create individual header files
-                    process_image(file_path)
+            file_path = os.path.join(input_path, filename)
+            # Create header file for each image
+            process_image(file_path, output_path, new_width, new_height)
     else:
         print("Input path does not exist or is not valid.")
 
