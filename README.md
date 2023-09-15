@@ -1,5 +1,7 @@
 # Image To RGB565
-Python script to convert JPG, JPEG or PNG images to RGB565 header file to use with TFT displays.
+Python script to convert JPG, JPEG, PNG ro GIF images to RGB565 header file to use with TFT displays.
+The static images create a 1D array.
+The GIF images create a 2D array.
 
 # General Information
 * Tested with python3.8
